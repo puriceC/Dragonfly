@@ -72,8 +72,8 @@ int main()
     int x; std::cin >> x;
     for (int i = 0; i < x; i++) {
         Peer alice("alice_id"), bob("bob_id");
-        alice.initiate("bob_id", "1234");
-        bob.initiate("alice_id", "1234");
+        alice.initiate("bob_id", "1234", 1);
+        bob.initiate("alice_id", "1234", 1);
 
         byte buffer[512];
         alice.commitExchange();

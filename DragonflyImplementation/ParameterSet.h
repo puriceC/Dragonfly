@@ -11,6 +11,7 @@ enum class CryptograpficMode {
 struct ParameterSet {
 	const static ParameterSet predefined[2];
 	static int index;
+
 	CryptograpficMode group = CryptograpficMode::FFC;
 
 	NTL::ZZ p = NTL::ZZ(NTL::INIT_VAL, "340282366920938463463374607431768223907");
