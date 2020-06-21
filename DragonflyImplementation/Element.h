@@ -32,7 +32,7 @@ public:
 	Element inverse() const;
 
 	int size() const;
-	void toBytes(unsigned char* buffer, int size) const;
+	int toBytes(unsigned char* buffer, int size) const;
 
 	void destroy();
 private:

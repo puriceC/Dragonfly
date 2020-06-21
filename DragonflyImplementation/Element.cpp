@@ -21,7 +21,17 @@ Element::Element(ZZ_p&& _x, ZZ_p&& _y)
 
 Element::Element(const unsigned char* buffer, int size)
 {
-	value = to_ZZ_p(ZZFromBytes(buffer, size));
+	int modulusSize = NumBytes(ZZ_p::modulus());
+	if (groupType == GroupType::FFC) {
+		if (modulusSize <= size) {
+			value = to_ZZ_p(ZZFromBytes(buffer, modulusSize));
+		}
+	} else {
+		if (2 * modulusSize <= size) {
+			x = to_ZZ_p(ZZFromBytes(buffer, modulusSize));
+			y = to_ZZ_p(ZZFromBytes(buffer + modulusSize, modulusSize));
+		}
+	}
 }
 
 bool Element::operator==(const Element& other) const
@@ -62,18 +72,20 @@ int Element::size() const
 	return 2 * NumBytes(ZZ_p::modulus());
 }
 
-void Element::toBytes(unsigned char* buffer, int size) const
+int Element::toBytes(unsigned char* buffer, int size) const
 {
 	int modulusSize = NumBytes(ZZ_p::modulus());
 	if (groupType == GroupType::FFC) {
 		if (size < modulusSize)
-			return;
+			return -1;
 		BytesFromZZ(buffer, rep(value), modulusSize);
+		return modulusSize;
 	} else {
 		if (size < 2 * modulusSize)
-			return;
+			return -1;
 		BytesFromZZ(buffer, rep(x), modulusSize);
 		BytesFromZZ(buffer + modulusSize, rep(y), modulusSize);
+		return 2 * modulusSize;
 	}
 }
 
