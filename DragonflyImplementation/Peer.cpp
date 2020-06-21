@@ -1,4 +1,5 @@
 #include "Peer.h"
+#include "ParameterSet.h"
 
 using namespace NTL;
 using std::string;
@@ -63,12 +64,13 @@ ZZ_p squareRoot(ZZ_p x)
 	return x;
 }
 
-bool isValidSeed(ZZ_p seed, ParameterSet ps)
+bool isValidSeed(ZZ_p seed)
 {
-	if (ps.group == Element::GroupType::FFC) {
-		return rep(power(seed, (ps.p - 1) / ps.q)) > 1;
+	ParameterSet params = ParameterSet::predefined[ParameterSet::index];
+	if (params.group == CryptograpficMode::FFC) {
+		return rep(power(seed, (params.p - 1) / params.q)) > 1;
 	}
-	return isQuadraticResidue((power(seed,  3) + ps.a * seed + ps.b), ps.p);
+	return isQuadraticResidue((power(seed,  3) + params.a * seed + params.b), params.p);
 }
 
 void populateBuffer(byte* buffer, long* bufferSize, const string& id, const string& otherId, const string& password)
@@ -87,9 +89,10 @@ void populateBuffer(byte* buffer, long* bufferSize, const string& id, const stri
 }
 
 void Peer::HuntingAndPecking() {
+	ParameterSet parameters = ParameterSet::predefined[ParameterSet::index];
 	bool found = false;
 	uint8_t counter = 1;
-	const size_t n = NumBytes(parameters.p) + 8;
+	const size_t n = NumBytes(ZZ_p::modulus()) + 8;
 	ZZ_p seed, savedSeed;
 	bool savedBit;
 	byte* temp = new byte[n];
@@ -103,9 +106,9 @@ void Peer::HuntingAndPecking() {
 		buffer[bufferSize - 1] = counter;
 		Hash(base, buffer, bufferSize);
 		DeriveKey(temp, n, base, DIGEST_SIZE);
-		seed = to_ZZ_p((ZZFromBytes(temp, n) % (parameters.p - 1)) + 1);
+		seed = to_ZZ_p((ZZFromBytes(temp, n) % (ZZ_p::modulus() - 1)) + 1);
 
-		if (isValidSeed(seed, parameters)) {
+		if (isValidSeed(seed)) {
 			if (!found) {
 				savedSeed = seed;
 				savedBit = base[0] & 0x01;
@@ -116,7 +119,7 @@ void Peer::HuntingAndPecking() {
 	} while (!found || (counter <= parameters.k));
 	delete[] temp;
 
-	if (parameters.group == Element::GroupType::FFC) {
+	if (parameters.group == CryptograpficMode::FFC) {
 		PE = Element(power(savedSeed, (parameters.p - 1) / parameters.q));
 	} else {
 		ZZ_p x = savedSeed;
@@ -129,7 +132,7 @@ void Peer::HuntingAndPecking() {
 	}
 }
 void Peer::computeSharedSecret() {
-	unsigned long numBytes = NumBytes(parameters.p);
+	unsigned long numBytes = NumBytes(ZZ_p::modulus());
 	byte ss[512];
 
 	Element scalarOperation = PE.scalarOp(peerScalar);
@@ -147,7 +150,7 @@ bool Peer::commitCheck() const
 	if (publicScalar == peerScalar) return false;
 	if (publicElement == peerElement) return false;
 	if (peerScalar <= 1) return false;
-	if (peerScalar >= parameters.q) return false;
+	if (peerScalar >= ParameterSet::predefined[ParameterSet::index].q) return false;
 	return true;
 }
 
@@ -166,16 +169,15 @@ Peer::~Peer()
 	destroy();
 }
 
-void Peer::initiate(const char* otherId, const char* password, ParameterSet parameterSet)
+void Peer::initiate(const char* otherId, const char* password, int parameterSetIndex)
 {
 	this->password = string(password);
 	this->otherId = string(otherId);
-	parameters = parameterSet;
+	ParameterSet::index = parameterSetIndex;
 
-	scalarSize = NumBytes(parameters.q);
-	elementSize = NumBytes(parameters.p);
-	if (parameters.group == Element::GroupType::ECC)
-		elementSize = 2;
+	ZZ_p::init(ParameterSet::predefined[ParameterSet::index].p);
+	scalarSize = NumBytes(ParameterSet::predefined[ParameterSet::index].q);
+	elementSize = Element::size();
 
     mk = new byte[elementSize];
 	memset(mk, 0xFF, elementSize);
@@ -186,20 +188,20 @@ void Peer::initiate(const char* otherId, const char* password, ParameterSet para
 	confirmMessage = new byte[DIGEST_SIZE];
 	memset(confirmMessage, 0, DIGEST_SIZE);
 
-	ZZ_p::init(parameters.p);
 
 	HuntingAndPecking();
 }
 void Peer::commitExchange() {
+	ZZ q = ParameterSet::predefined[ParameterSet::index].q;
 	Scalar maskNumber;
 	do {
 		do {
 			maskNumber = RandomBits_ZZ(scalarSize * 8);
-		} while (maskNumber >= parameters.q);
+		} while (maskNumber >= q);
 		do {
 			privateNumber = RandomBits_ZZ(scalarSize * 8);
-		} while (privateNumber >= parameters.q);
-		publicScalar = AddMod(maskNumber, privateNumber, parameters.q);
+		} while (privateNumber >= q);
+		publicScalar = AddMod(maskNumber, privateNumber, q);
 	} while (publicScalar <= 2);
 
 	publicElement = PE.scalarOp(maskNumber).inverse();
@@ -238,8 +240,6 @@ void Peer::confirmExchange() {
 }
 void Peer::destroy()
 {
-	parameters.p.kill();
-	parameters.q.kill();
 	privateNumber.kill();
 	publicScalar.kill();
 	peerScalar.kill();
@@ -343,7 +343,6 @@ void copyString(byte** s, const byte* other, size_t size){
 }
 
 Peer::Peer(const Peer &p) {
-	parameters = p.parameters;
 	elementSize = p.elementSize;
 	scalarSize = p.scalarSize;
 	copyString(&kck, p.kck, getKeySize());
@@ -353,7 +352,6 @@ Peer::Peer(const Peer &p) {
 }
 
 Peer::Peer(Peer &&p) noexcept {
-	parameters = p.parameters;
 	elementSize = p.elementSize;
 	scalarSize = p.scalarSize;
 	kck = p.kck;

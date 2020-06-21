@@ -13,7 +13,7 @@ public:
 	Peer(Peer&&) noexcept;
 	~Peer();
 	
-	void initiate(const char* otherId, const char* password, ParameterSet = ParameterSet());
+	void initiate(const char* otherId, const char* password, int ParameterSetIndex = 0);
 	void destroy();
 	void commitExchange();
 	void confirmExchange();
@@ -47,13 +47,13 @@ public:
 		return publicElement;
 	};
 private:
+	static const size_t DIGEST_SIZE = 32;
+	static int parameterSetIndex;
 	const std::string id;
 	std::string otherId;
 	std::string password;
-	ParameterSet parameters;
 	size_t scalarSize;
 	size_t elementSize;
-	static const size_t DIGEST_SIZE = 32;
 	Scalar privateNumber;
 	Scalar publicScalar;
 	Scalar peerScalar;

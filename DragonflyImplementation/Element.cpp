@@ -1,10 +1,9 @@
 #include "Element.h"
+#include "ParameterSet.h"
 
 using namespace NTL;
 
 using byte = unsigned char;
-
-Element::GroupType Element::groupType = Element::GroupType::FFC;
 
 Element::Element(const ZZ_p& v)
 	: value(v)
@@ -22,7 +21,7 @@ Element::Element(ZZ_p&& _x, ZZ_p&& _y)
 Element::Element(const unsigned char* buffer, int size)
 {
 	int modulusSize = NumBytes(ZZ_p::modulus());
-	if (groupType == GroupType::FFC) {
+	if (ParameterSet::predefined[ParameterSet::index].group == CryptograpficMode::FFC) {
 		if (modulusSize <= size) {
 			value = to_ZZ_p(ZZFromBytes(buffer, modulusSize));
 		}
@@ -36,7 +35,7 @@ Element::Element(const unsigned char* buffer, int size)
 
 bool Element::operator==(const Element& other) const
 {
-	if (groupType == GroupType::FFC) {
+	if (ParameterSet::predefined[ParameterSet::index].group == CryptograpficMode::FFC) {
 		return this->value == other.value;
 	}
 	return (x == other.x && y == other.y);
@@ -44,29 +43,46 @@ bool Element::operator==(const Element& other) const
 
 Element Element::elementOp(const Element& other) const
 {
-	if (groupType == GroupType::FFC) {
+	if (ParameterSet::predefined[ParameterSet::index].group == CryptograpficMode::FFC) {
 		return this->value * other.value;
 	}
+	if (this->x == 0 && this->y == 0) {
+		return other;
+	}
+	if (other.x == 0 && other.y == 0) {
+		return *this;
+	}
+	if (this->x == other.x && this->y == -other.y) {
+		return Element(ZZ_p(0), ZZ_p(0));
+	}
+	ZZ_p dydx;
+	if (this->x == other.x && this->y == other.y) {
+		dydx = (3 * power(this->x, 2) + ParameterSet::predefined[ParameterSet::index].a) * inv(2 * this->y);
+	} else {
+		dydx = (other.y - this->y) * inv(other.x - this->x);
+	}
+	ZZ_p x = power(dydx, 2) - this->x - other.x;
+	return Element(x, dydx * (this->x - x) - this->y);
 }
 
 Element Element::scalarOp(const ZZ& scalar) const
 {
-	if (groupType == GroupType::FFC) {
+	if (ParameterSet::predefined[ParameterSet::index].group == CryptograpficMode::FFC) {
 		return power(this->value, scalar);
 	}
 }
 
 Element Element::inverse() const
 {
-	if (groupType == GroupType::FFC) {
+	if (ParameterSet::predefined[ParameterSet::index].group == CryptograpficMode::FFC) {
 		return inv(value);
 	}
 	return Element(x, -y);
 }
 
-int Element::size() const
+int Element::size()
 {
-	if (groupType == GroupType::FFC) {
+	if (ParameterSet::predefined[ParameterSet::index].group == CryptograpficMode::FFC) {
 		return NumBytes(ZZ_p::modulus());
 	}
 	return 2 * NumBytes(ZZ_p::modulus());
@@ -75,7 +91,7 @@ int Element::size() const
 int Element::toBytes(unsigned char* buffer, int size) const
 {
 	int modulusSize = NumBytes(ZZ_p::modulus());
-	if (groupType == GroupType::FFC) {
+	if (ParameterSet::predefined[ParameterSet::index].group == CryptograpficMode::FFC) {
 		if (size < modulusSize)
 			return -1;
 		BytesFromZZ(buffer, rep(value), modulusSize);

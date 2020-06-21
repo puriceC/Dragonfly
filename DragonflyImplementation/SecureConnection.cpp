@@ -62,14 +62,12 @@ SecureConnection SecureConnection::Accept(sockaddr_t *address, socklen_t *size, 
     if (peerSocket < 0) {
         return SecureConnection(INVALID_SOCKET);
     }
-    ParameterSet ps;
-    byte qBuffer[KEY_SIZE];
-    recv(peerSocket, (char*)qBuffer, KEY_SIZE, 0);
-    ps.q = (NTL::ZZFromBytes(qBuffer, KEY_SIZE));
-    ps.p = (2 * ps.q + 1);
+
+    char index;
+    recv(peerSocket, &index, 1, 0);
 
     Peer peer("Server");
-    peer.initiate("Client", password, ps);
+    peer.initiate("Client", password, index);
 
     peer.commitExchange();
     uint64_t commitSize = peer.getCommitMessageSize();
@@ -130,15 +128,12 @@ int SecureConnection::Connect(sockaddr_t *address, socklen_t size, const char* p
         return SOCKET_ERROR;
     }
     
-    ParameterSet ps;
-    ps.q = NTL::GenGermainPrime_ZZ(KEY_SIZE * 8);
-    byte qBuffer[KEY_SIZE];
-    NTL::BytesFromZZ(qBuffer, ps.q, KEY_SIZE);
-    send(mSocket, (char*)qBuffer, KEY_SIZE, 0);
-    ps.p = (2 * ps.q + 1);
+
+    char index = 0;
+    send(mSocket, &index, 1, 0);
 
     Peer peer("Client");
-    peer.initiate("Server", password, ps);
+    peer.initiate("Server", password, index);
     peer.commitExchange();
     uint64_t commitSize = peer.getCommitMessageSize();
     unsigned char *commitBuffer = new byte[commitSize];

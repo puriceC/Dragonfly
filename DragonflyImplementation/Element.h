@@ -2,17 +2,13 @@
 
 #include <NTL/ZZ.h>
 #include <NTL/ZZ_p.h>
-#include "ParameterSet.h"
 
 using Scalar = NTL::ZZ;
 
 class Element {
 public:
-	enum class GroupType {
-		ECC, FFC
-	};
 
-	static GroupType groupType;
+	
 	Element() = default;
 	Element(const Element&) = default;
 	Element(Element&&) = default;
@@ -31,7 +27,7 @@ public:
 	Element scalarOp(const NTL::ZZ& scalar) const;
 	Element inverse() const;
 
-	int size() const;
+	static int size();
 	int toBytes(unsigned char* buffer, int size) const;
 
 	void destroy();
@@ -58,15 +54,4 @@ private:
 		this->value = NTL::ZZ_p(value);
 		return *this;
 	}
-};
-
-struct ParameterSet {
-	Element::GroupType group = Element::GroupType::FFC;
-
-	NTL::ZZ p = NTL::ZZ(NTL::INIT_VAL, "340282366920938463463374607431768223907");
-	NTL::ZZ q = NTL::ZZ(NTL::INIT_VAL, "170141183460469231731687303715884111953");
-	uint8_t k = 40;
-
-	NTL::ZZ_p a;
-	NTL::ZZ_p b;
 };
