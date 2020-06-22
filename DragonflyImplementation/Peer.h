@@ -12,8 +12,8 @@ public:
 	Peer(const Peer&);
 	Peer(Peer&&) noexcept;
 	~Peer();
-	
-	void initiate(const char* otherId, const char* password, int ParameterSetIndex = 0);
+	static void selectParameterSet(int index);
+	void initiate(const char* otherId, const char* password);
 	void destroy();
 	void commitExchange();
 	void confirmExchange();

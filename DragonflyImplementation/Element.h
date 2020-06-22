@@ -18,6 +18,8 @@ public:
 	Element(NTL::ZZ_p&& _x, NTL::ZZ_p&& _y);
 	Element(const unsigned char* buffer, int size);
 
+	bool isValid() const;
+
 	Element& operator = (const Element&) = default;
 	Element& operator = (Element&&) = default;
 

@@ -65,9 +65,9 @@ SecureConnection SecureConnection::Accept(sockaddr_t *address, socklen_t *size, 
 
     char index;
     recv(peerSocket, &index, 1, 0);
-
+    Peer::selectParameterSet(index);
     Peer peer("Server");
-    peer.initiate("Client", password, index);
+    peer.initiate("Client", password);
 
     peer.commitExchange();
     uint64_t commitSize = peer.getCommitMessageSize();
@@ -131,9 +131,9 @@ int SecureConnection::Connect(sockaddr_t *address, socklen_t size, const char* p
 
     char index = 0;
     send(mSocket, &index, 1, 0);
-
+    Peer::selectParameterSet(index);
     Peer peer("Client");
-    peer.initiate("Server", password, index);
+    peer.initiate("Server", password);
     peer.commitExchange();
     uint64_t commitSize = peer.getCommitMessageSize();
     unsigned char *commitBuffer = new byte[commitSize];

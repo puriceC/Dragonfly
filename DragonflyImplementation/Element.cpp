@@ -7,16 +7,36 @@ using byte = unsigned char;
 
 Element::Element(const ZZ_p& v)
 	: value(v)
-{}
+{
+	if (!isValid()) {
+		std::cerr << "Invalid element\n";
+		destroy();
+	}
+}
 Element::Element(ZZ_p&& v)
 	: value(std::move(v))
-{}
+{
+	if (!isValid()) {
+		std::cerr << "Invalid element\n";
+		destroy();
+	}
+}
 Element::Element(const ZZ_p& _x, const ZZ_p& _y)
 	: x(_x), y(_y)
-{}
+{
+	if (!isValid()) {
+		std::cerr << "Invalid element\n";
+		destroy();
+	}
+}
 Element::Element(ZZ_p&& _x, ZZ_p&& _y)
 	: x(std::move(_x)), y(std::move(_y))
-{}
+{
+	if (!isValid()) {
+		std::cerr << "Invalid element\n";
+		destroy();
+	}
+}
 
 Element::Element(const unsigned char* buffer, int size)
 {
@@ -31,6 +51,25 @@ Element::Element(const unsigned char* buffer, int size)
 			y = to_ZZ_p(ZZFromBytes(buffer + modulusSize, modulusSize));
 		}
 	}
+	if (!isValid()) {
+		std::cerr << "Invalid element\n";
+		destroy();
+	}
+}
+
+bool Element::isValid() const
+{
+	ParameterSet ps = ParameterSet::predefined[ParameterSet::index];
+	if (ps.group == CryptograpficMode::FFC) {
+		if ((rep(value) <= 1) || (rep(value) >= ps.p - 1) || (power(value, ps.q) != 1)) {
+			return false;
+		}
+		return true;
+	}
+	if (power(y, 2) != power(x, 3) + to_ZZ_p(ps.a) * x + to_ZZ_p(ps.b)) {
+		return false;
+	}
+	return true;
 }
 
 bool Element::operator==(const Element& other) const
@@ -57,11 +96,12 @@ Element Element::elementOp(const Element& other) const
 	}
 	ZZ_p dydx;
 	if (this->x == other.x && this->y == other.y) {
-		dydx = (3 * power(this->x, 2) + ParameterSet::predefined[ParameterSet::index].a) * inv(2 * this->y);
+		dydx = (3 * power(this->x, 2) + to_ZZ_p(ParameterSet::predefined[ParameterSet::index].a)) * inv(2 * this->y);
 	} else {
 		dydx = (other.y - this->y) * inv(other.x - this->x);
 	}
 	ZZ_p x = power(dydx, 2) - this->x - other.x;
+
 	return Element(x, dydx * (this->x - x) - this->y);
 }
 
@@ -70,6 +110,15 @@ Element Element::scalarOp(const ZZ& scalar) const
 	if (ParameterSet::predefined[ParameterSet::index].group == CryptograpficMode::FFC) {
 		return power(this->value, scalar);
 	}
+	int numBits = NumBits(scalar);
+	Element result = *this;
+	for (int i = 0; i < numBits; ++i) {
+		result = result.elementOp(result);
+		if (bit(scalar, i)) {
+			result = this->elementOp(result);
+		}
+	}
+	return result;
 }
 
 Element Element::inverse() const
