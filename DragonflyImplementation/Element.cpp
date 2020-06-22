@@ -37,7 +37,6 @@ Element::Element(ZZ_p&& _x, ZZ_p&& _y)
 		destroy();
 	}
 }
-
 Element::Element(const unsigned char* buffer, int size)
 {
 	int modulusSize = NumBytes(ZZ_p::modulus());
@@ -80,6 +79,7 @@ bool Element::operator==(const Element& other) const
 	return (x == other.x && y == other.y);
 }
 
+byte buf[16];
 Element Element::elementOp(const Element& other) const
 {
 	if (ParameterSet::predefined[ParameterSet::index].group == CryptograpficMode::FFC) {
@@ -101,10 +101,12 @@ Element Element::elementOp(const Element& other) const
 		dydx = (other.y - this->y) * inv(other.x - this->x);
 	}
 	ZZ_p x = power(dydx, 2) - this->x - other.x;
-
+	Element result = Element(x, dydx * (this->x - x) - this->y);
+	toBytes(buf, 16);
+	other.toBytes(buf, 16);
+	result.toBytes(buf, 16);
 	return Element(x, dydx * (this->x - x) - this->y);
 }
-
 Element Element::scalarOp(const ZZ& scalar) const
 {
 	if (ParameterSet::predefined[ParameterSet::index].group == CryptograpficMode::FFC) {
@@ -112,15 +114,14 @@ Element Element::scalarOp(const ZZ& scalar) const
 	}
 	int numBits = NumBits(scalar);
 	Element result = *this;
-	for (int i = 0; i < numBits; ++i) {
+	for (int i = numBits - 2; i >= 0; --i) {
 		result = result.elementOp(result);
 		if (bit(scalar, i)) {
-			result = this->elementOp(result);
+			result = result.elementOp(*this);
 		}
 	}
 	return result;
 }
-
 Element Element::inverse() const
 {
 	if (ParameterSet::predefined[ParameterSet::index].group == CryptograpficMode::FFC) {

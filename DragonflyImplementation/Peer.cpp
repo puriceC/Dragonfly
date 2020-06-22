@@ -181,6 +181,8 @@ void Peer::HuntingAndPecking() {
 		} else {
 			PE = Element(x, -y);
 		}
+		byte buf[128];
+		PE.toBytes(buf, 128);
 	}
 }
 void Peer::computeSharedSecret() {
@@ -203,6 +205,7 @@ bool Peer::commitCheck() const
 	if (publicElement == peerElement) return false;
 	if (peerScalar <= 1) return false;
 	if (peerScalar >= ParameterSet::predefined[ParameterSet::index].q) return false;
+	if (!peerElement.isValid() || peerElement == Element()) return false;
 	return true;
 }
 

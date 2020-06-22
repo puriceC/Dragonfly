@@ -1,7 +1,7 @@
 #include "ParameterSet.h"
 
 int ParameterSet::index = 0;
-const ParameterSet ParameterSet::predefined[2] = {
+const ParameterSet ParameterSet::predefined[] = {
 		{
 		CryptograpficMode::ECC,
 		40,
@@ -18,4 +18,12 @@ const ParameterSet ParameterSet::predefined[2] = {
 		NTL::ZZ(),
 		NTL::ZZ()
 	},
+	{
+		CryptograpficMode::ECC,
+		1,
+		NTL::ZZ(NTL::INIT_VAL, "17"),
+		NTL::ZZ(NTL::INIT_VAL, "19"),
+		NTL::ZZ(NTL::INIT_VAL, "2"),
+		NTL::ZZ(NTL::INIT_VAL, "2")
+	}
 };

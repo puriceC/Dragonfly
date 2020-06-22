@@ -71,7 +71,7 @@ int main()
     //*/
     int x; std::cin >> x;
     for (int i = 0; i < x; i++) {
-        Peer::selectParameterSet(1);
+        Peer::selectParameterSet(i%3);
         Peer alice("alice_id"), bob("bob_id");
         alice.initiate("bob_id", "1234");
         bob.initiate("alice_id", "1234");
@@ -87,7 +87,7 @@ int main()
             //std::cout << "Commit successful" << std::endl;
         } else {
             std::cerr << "Commit error" << std::endl;
-            return -1;
+            continue;
         }
         alice.confirmExchange();
         bob.confirmExchange();
@@ -99,7 +99,7 @@ int main()
             //std::cout << "Confirm successful" << std::endl;
         } else {
             std::cerr << "Confirm error" << std::endl;
-            return -1;
+            continue;
         }
         alice.getKey(buffer, 256);
         bob.getKey(buffer + 256, 256);
@@ -107,12 +107,12 @@ int main()
             std::cout << "Key:\n" << std::string((char*)buffer, alice.getKeySize()) << std::endl;
         } else {
             std::cerr << "Keys differ" << std::endl;
-            return -1;
+            continue;
         }
         alice.destroy();
         bob.destroy();
     }
-    std::cout << "success";
+    std::cout << "finished";
     return 0;
     //*/
 }

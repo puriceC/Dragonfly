@@ -9,7 +9,7 @@ enum class CryptograpficMode {
 };
 
 struct ParameterSet {
-	const static ParameterSet predefined[2];
+	const static ParameterSet predefined[];
 	static int index;
 
 	CryptograpficMode group;
