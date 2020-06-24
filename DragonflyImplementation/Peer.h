@@ -4,7 +4,7 @@
 #include "Element.h"
 
 
-using byte = unsigned char;
+using Byte = unsigned char;
 
 class Peer {
 public:
@@ -12,19 +12,21 @@ public:
 	Peer(const Peer&);
 	Peer(Peer&&) noexcept;
 	~Peer();
+
 	static void selectParameterSet(int index);
+
 	void initiate(const char* otherId, const char* password);
 	void destroy();
 	void commitExchange();
 	void confirmExchange();
 
-	void getCommitMessage(byte* buffer, size_t bufferSize) const;
-	void getConfirmMessage(byte* buffer, size_t bufferSize) const;
-	void getKey(byte* buffer, size_t bufferSize) const;
+	void getCommitMessage(Byte* buffer, size_t bufferSize) const;
+	void getConfirmMessage(Byte* buffer, size_t bufferSize) const;
+	void getKey(Byte* buffer, size_t bufferSize) const;
 
 	bool verifyPeerCommit(const Scalar& peerScalar, const Element& peerElement);
-	bool verifyPeerCommit(const byte* peerCommitMessage);
-	bool verifyPeerConfirm(const byte* peerConfirmMessage);
+	bool verifyPeerCommit(const Byte* peerCommitMessage);
+	bool verifyPeerConfirm(const Byte* peerConfirmMessage);
 
 	inline size_t getCommitMessageSize() const
 	{
@@ -60,12 +62,12 @@ private:
 	Element PE;
 	Element publicElement;
 	Element peerElement;
-	byte* kck;
-	byte* mk;
-	byte* commitMessage;
-	byte* confirmMessage;
+	Byte* kck;
+	Byte* mk;
+	Byte* commitMessage;
+	Byte* confirmMessage;
 
-	static void Hash(byte* result, const byte* buffer, size_t bufferSize);
+	static void Hash(Byte* result, const Byte* buffer, size_t bufferSize);
 	void HuntingAndPecking();
 	void computeSharedSecret();
 	bool commitCheck() const;

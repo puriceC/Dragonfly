@@ -19,7 +19,7 @@ SecureConnection::SecureConnection(socket_t mSocket) : mSocket(mSocket), mKey(nu
 SecureConnection::SecureConnection(const SecureConnection& s) : mSocket(s.mSocket), status(s.status), mKeySize(s.mKeySize)
 {
     if (s.mKey != nullptr && s.mKeySize > 0){
-        this->mKey = new byte[mKeySize];
+        this->mKey = new Byte[mKeySize];
         memcpy(this->mKey, s.mKey, mKeySize);
     }else{
         this->mKey = nullptr;
@@ -71,7 +71,7 @@ SecureConnection SecureConnection::Accept(sockaddr_t *address, socklen_t *size, 
 
     peer.commitExchange();
     uint64_t commitSize = peer.getCommitMessageSize();
-    unsigned char* commitBuffer = new byte[2 * commitSize];
+    unsigned char* commitBuffer = new Byte[2 * commitSize];
     char control;
     recv(peerSocket, &control, 1, 0);
     if (control != 'c') {
@@ -91,7 +91,7 @@ SecureConnection SecureConnection::Accept(sockaddr_t *address, socklen_t *size, 
 
     peer.confirmExchange();
     uint64_t confirmSize = peer.getConfirmMessageSize();
-    unsigned char *confirmBuffer = new byte[2*confirmSize];
+    unsigned char *confirmBuffer = new Byte[2*confirmSize];
     recv(peerSocket, &control, 1, 0);
     if (control != 'c') {
         return SecureConnection(INVALID_SOCKET);
@@ -110,7 +110,7 @@ SecureConnection SecureConnection::Accept(sockaddr_t *address, socklen_t *size, 
     }
     SecureConnection returnValue = SecureConnection(peerSocket);
     returnValue.mKeySize = peer.getKeySize();
-    returnValue.mKey = new byte[returnValue.mKeySize];
+    returnValue.mKey = new Byte[returnValue.mKeySize];
     peer.getKey(returnValue.mKey, returnValue.mKeySize);
     peer.destroy();
 
@@ -136,7 +136,7 @@ int SecureConnection::Connect(sockaddr_t *address, socklen_t size, const char* p
     peer.initiate("Server", password);
     peer.commitExchange();
     uint64_t commitSize = peer.getCommitMessageSize();
-    unsigned char *commitBuffer = new byte[commitSize];
+    unsigned char *commitBuffer = new Byte[commitSize];
     peer.getCommitMessage(commitBuffer, commitSize);
     char control = 'c';
     send(mSocket, &control, 1, 0);
@@ -150,7 +150,7 @@ int SecureConnection::Connect(sockaddr_t *address, socklen_t size, const char* p
 
     peer.confirmExchange();
     uint64_t confirmSize = peer.getConfirmMessageSize();
-    unsigned char *confirmBuffer = new byte[confirmSize];
+    unsigned char *confirmBuffer = new Byte[confirmSize];
     peer.getConfirmMessage(confirmBuffer, confirmSize);
     send(mSocket, &control, 1, 0);
     send(mSocket, (char *) confirmBuffer, confirmSize, 0);
@@ -162,7 +162,7 @@ int SecureConnection::Connect(sockaddr_t *address, socklen_t size, const char* p
     }
 
     mKeySize = peer.getKeySize();
-    mKey = new byte[mKeySize];
+    mKey = new Byte[mKeySize];
     peer.getKey(mKey, mKeySize);
     peer.destroy();
     delete[] commitBuffer;
@@ -268,12 +268,12 @@ int encrypt(unsigned char *plaintext, int plaintext_len, unsigned char *key,
 long SecureConnection::Receive(char* data, size_t size, int flags) {
     if (mKey == nullptr)
         return -1;
-    byte * encryptedData = new byte[size];
+    Byte * encryptedData = new Byte[size];
 
     int received = recv(mSocket, (char*)encryptedData, size, flags);
     int decrypted = 0;
     if (received > 0){
-        decrypted = decrypt(encryptedData, received, mKey, (byte*)"0123456789ABCDEF", (byte*)data);
+        decrypted = decrypt(encryptedData, received, mKey, (Byte*)"0123456789ABCDEF", (Byte*)data);
         data[decrypted] = '\0';
     }
 
@@ -282,9 +282,9 @@ long SecureConnection::Receive(char* data, size_t size, int flags) {
 }
 long SecureConnection::Send(const char* data, size_t size, int flags)
 {
-    byte* encryptedData = new byte[size + mKeySize];
+    Byte* encryptedData = new Byte[size + mKeySize];
 
-    int encrypted = encrypt((byte*)data, size, mKey, (byte*)"0123456789ABCDEF", encryptedData);
+    int encrypted = encrypt((Byte*)data, size, mKey, (Byte*)"0123456789ABCDEF", encryptedData);
     int sent = send(mSocket, (char*)encryptedData, encrypted, flags);
 
     delete[] encryptedData;

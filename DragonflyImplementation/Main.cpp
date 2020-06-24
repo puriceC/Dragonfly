@@ -1,6 +1,7 @@
 #include <string>
 #include <iostream>
 #include <string.h>
+#include <time.h>
 
 #include "Peer.h"
 #include "SecureConnection.h"
@@ -69,14 +70,20 @@ int main()
     cout << received << " bytes received:\n" << message << endl;
     //*/
     //*/
+
+
+
+        Byte buffer[512];
     int x; std::cin >> x;
     for (int i = 0; i < x; i++) {
-        Peer::selectParameterSet(i%3);
+
+        clock_t start = clock(), diff;
+
+        Peer::selectParameterSet(0);
         Peer alice("alice_id"), bob("bob_id");
         alice.initiate("bob_id", "1234");
         bob.initiate("alice_id", "1234");
 
-        byte buffer[512];
         alice.commitExchange();
         bob.commitExchange();
         alice.getCommitMessage(buffer, 256);
@@ -104,13 +111,19 @@ int main()
         alice.getKey(buffer, 256);
         bob.getKey(buffer + 256, 256);
         if (memcmp(buffer, buffer + 256, alice.getKeySize()) == 0) {
-            std::cout << "Key:\n" << std::string((char*)buffer, alice.getKeySize()) << std::endl;
+            //std::cout << "Key:\n" << std::string((char*)buffer, alice.getKeySize()) << std::endl;
         } else {
             std::cerr << "Keys differ" << std::endl;
             continue;
         }
         alice.destroy();
         bob.destroy();
+
+
+        diff = clock() - start;
+
+        int msec = diff * 1000 / CLOCKS_PER_SEC;
+        printf("Time taken %d seconds %d milliseconds\n", msec / 1000, msec % 1000);
     }
     std::cout << "finished";
     return 0;
