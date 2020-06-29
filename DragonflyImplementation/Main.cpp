@@ -4,26 +4,21 @@
 #include <time.h>
 
 #include "Peer.h"
-#include "SecureConnection.h"
+#include "SecureSocket.h"
 
-int decrypt(unsigned char* ciphertext, int ciphertext_len, unsigned char* key,
-            unsigned char* iv, unsigned char* plaintext);
-int encrypt(unsigned char* plaintext, int plaintext_len, unsigned char* key,
-            unsigned char* iv, unsigned char* ciphertext);
 
 #define PORT 57157
 
 using namespace std;
 using namespace NTL;
-using NTL::ZZ;
 
 
 int main()
 {
 
     /*
-    SecureConnection sock = SecureConnection(AF_INET, SOCK_STREAM, 0);
-    if (sock.status == SecureConnection::Status::Error) {
+    SecureSocket sock = SecureSocket(AF_INET, SOCK_STREAM, 0);
+    if (sock.status == SecureSocket::Status::Error) {
         std::cout << "\n Socket creation error \n" << endl;
         return -1;
     }
@@ -39,34 +34,34 @@ int main()
     std::cout << "\nConnecting... \n" << endl;
     char pass[62] = "123";
     //std::cin >> pass;
-    if (sock.Connect((struct sockaddr*) & serverAddress, sizeof(serverAddress), pass) < 0) {
+    if (sock.connect((struct sockaddr*) & serverAddress, sizeof(serverAddress), pass) < 0) {
         std::cout << "\nConnection Failed \n" << endl;
         return -1;
     }
     const char message[] = "This will likely fail as it uses more blocks";
-    sock.Send(message, sizeof(message), 0);
+    sock.send(message, sizeof(message), 0);
     std::cout << "\nSmall success!\n" << endl;
-    sock.Close();
+    sock.close();
 
 /*/
 /*
 
-    SecureConnection server(AF_INET, SOCK_STREAM, 0);
+    SecureSocket server(AF_INET, SOCK_STREAM, 0);
     sockaddr_in serverAddr, clientAddr;
     serverAddr.sin_addr.s_addr = INADDR_ANY;
     serverAddr.sin_family = AF_INET;
     serverAddr.sin_port = htons(PORT);
-    server.Bind((sockaddr_t*)&serverAddr, sizeof(serverAddr));
-    server.Listen(0);
+    server.bind((sockaddr_t*)&serverAddr, sizeof(serverAddr));
+    server.listen(0);
     cout << "Listening for incoming connections..." << endl;
     socklen_t clientAddrSize = sizeof(clientAddr);
-    SecureConnection client = server.Accept((sockaddr_t*)&clientAddr, &clientAddrSize, "");
-    if (client.status == SecureConnection::Status::Error) {
+    SecureSocket client = server.accept((sockaddr_t*)&clientAddr, &clientAddrSize, "");
+    if (client.status == SecureSocket::Status::Error) {
         return -1;
     }
     cout << "Client connected!" << endl;
     char message[64];
-    int received = client.Receive(message, 64, 0);
+    int received = client.receive(message, 64, 0);
     cout << received << " bytes received:\n" << message << endl;
     //*/
     //*/

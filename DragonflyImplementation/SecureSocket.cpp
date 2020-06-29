@@ -3,12 +3,12 @@
 #include <openssl/evp.h>
 #include <openssl/err.h>
 #include "Peer.h"
-#include "SecureConnection.h"
+#include "SecureSocket.h"
 
 #define KEY_SIZE 16
 
 
-SecureConnection::SecureConnection(socket_t mSocket) : mSocket(mSocket), mKey(nullptr), mKeySize(0)
+SecureSocket::SecureSocket(socket_t mSocket) : mSocket(mSocket), mKey(nullptr), mKeySize(0)
 {
     if (mSocket < 0) {
         status = Status::Error;
@@ -16,7 +16,7 @@ SecureConnection::SecureConnection(socket_t mSocket) : mSocket(mSocket), mKey(nu
         status = Status::Success;
     }
 }
-SecureConnection::SecureConnection(const SecureConnection& s) : mSocket(s.mSocket), status(s.status), mKeySize(s.mKeySize)
+SecureSocket::SecureSocket(const SecureSocket& s) : mSocket(s.mSocket), status(s.status), mKeySize(s.mKeySize)
 {
     if (s.mKey != nullptr && s.mKeySize > 0){
         this->mKey = new Byte[mKeySize];
@@ -25,7 +25,7 @@ SecureConnection::SecureConnection(const SecureConnection& s) : mSocket(s.mSocke
         this->mKey = nullptr;
     }
 }
-SecureConnection::SecureConnection(SecureConnection&& s)
+SecureSocket::SecureSocket(SecureSocket&& s)
 {
     this->mSocket = s.mSocket;
     this->status = s.status;
@@ -33,7 +33,7 @@ SecureConnection::SecureConnection(SecureConnection&& s)
     this->mKey = s.mKey;
     s.mKey = nullptr;
 }
-SecureConnection::SecureConnection(int addressFamily, int type, int protocol) : mKey(nullptr), mKeySize(0)
+SecureSocket::SecureSocket(int addressFamily, int type, int protocol) : mKey(nullptr), mKeySize(0)
 {
 #ifdef _WIN32
     WSADATA WSAData;
@@ -43,24 +43,24 @@ SecureConnection::SecureConnection(int addressFamily, int type, int protocol) : 
     status = mSocket < 0 ?
         Status::Error : Status::Success;
 }
-SecureConnection::~SecureConnection()
+SecureSocket::~SecureSocket()
 {
     delete[] mKey;
 }
 
-int SecureConnection::Bind(const sockaddr_t* address, socklen_t size)
+int SecureSocket::bind(const sockaddr_t* address, socklen_t size)
 {
-    return bind(mSocket, address, size);
+    return ::bind(mSocket, address, size);
 }
-int SecureConnection::Listen(int backlog)
+int SecureSocket::listen(int backlog)
 {
-    return listen(mSocket, backlog);
+    return ::listen(mSocket, backlog);
 }
 
-SecureConnection SecureConnection::Accept(sockaddr_t *address, socklen_t *size, const char* password) {
-    socket_t peerSocket = accept(mSocket, address, size);
+SecureSocket SecureSocket::accept(sockaddr_t *address, socklen_t *size, const char* password) {
+    socket_t peerSocket = ::accept(mSocket, address, size);
     if (peerSocket < 0) {
-        return SecureConnection(INVALID_SOCKET);
+        return SecureSocket(INVALID_SOCKET);
     }
 
     char index;
@@ -75,40 +75,40 @@ SecureConnection SecureConnection::Accept(sockaddr_t *address, socklen_t *size, 
     char control;
     recv(peerSocket, &control, 1, 0);
     if (control != 'c') {
-        return SecureConnection(INVALID_SOCKET);
+        return SecureSocket(INVALID_SOCKET);
     }
     recv(peerSocket, (char *) commitBuffer, commitSize, 0);
     if (!peer.verifyPeerCommit(commitBuffer)) {
         std::cout << "Commit error" << std::endl;
-        return SecureConnection(INVALID_SOCKET);
+        return SecureSocket(INVALID_SOCKET);
     }
     recv(peerSocket, &control, 1, 0);
     if (control != 'c') {
-        return SecureConnection(INVALID_SOCKET);
+        return SecureSocket(INVALID_SOCKET);
     }
     peer.getCommitMessage(commitBuffer+commitSize, commitSize);
-    send(peerSocket, (char *) commitBuffer+commitSize, commitSize, 0);
+    ::send(peerSocket, (char *) commitBuffer+commitSize, commitSize, 0);
 
     peer.confirmExchange();
     uint64_t confirmSize = peer.getConfirmMessageSize();
     unsigned char *confirmBuffer = new Byte[2*confirmSize];
     recv(peerSocket, &control, 1, 0);
     if (control != 'c') {
-        return SecureConnection(INVALID_SOCKET);
+        return SecureSocket(INVALID_SOCKET);
     }
     recv(peerSocket, (char *) confirmBuffer, confirmSize, 0);
     recv(peerSocket, &control, 1, 0);
     if (control != 'c') {
-        return SecureConnection(INVALID_SOCKET);
+        return SecureSocket(INVALID_SOCKET);
     }
     peer.getConfirmMessage(confirmBuffer+confirmSize, confirmSize);
-    send(peerSocket, (char *) confirmBuffer+confirmSize, confirmSize, 0);
+    ::send(peerSocket, (char *) confirmBuffer+confirmSize, confirmSize, 0);
 
     if (!peer.verifyPeerConfirm(confirmBuffer)) {
         std::cout << "Confirm error" << std::endl;
-        return SecureConnection(INVALID_SOCKET);
+        return SecureSocket(INVALID_SOCKET);
     }
-    SecureConnection returnValue = SecureConnection(peerSocket);
+    SecureSocket returnValue = SecureSocket(peerSocket);
     returnValue.mKeySize = peer.getKeySize();
     returnValue.mKey = new Byte[returnValue.mKeySize];
     peer.getKey(returnValue.mKey, returnValue.mKeySize);
@@ -119,8 +119,8 @@ SecureConnection SecureConnection::Accept(sockaddr_t *address, socklen_t *size, 
     return returnValue;
 }
 
-int SecureConnection::Connect(sockaddr_t *address, socklen_t size, const char* password) {
-    int returnValue = connect(mSocket, address, size);
+int SecureSocket::connect(sockaddr_t *address, socklen_t size, const char* password) {
+    int returnValue = ::connect(mSocket, address, size);
     if (returnValue < 0) {
 #ifdef _WIN32
         std::cout << "ERROR --->" << WSAGetLastError();
@@ -130,7 +130,7 @@ int SecureConnection::Connect(sockaddr_t *address, socklen_t size, const char* p
     
 
     char index = 0;
-    send(mSocket, &index, 1, 0);
+    ::send(mSocket, &index, 1, 0);
     Peer::selectParameterSet(index);
     Peer peer("Client");
     peer.initiate("Server", password);
@@ -139,10 +139,10 @@ int SecureConnection::Connect(sockaddr_t *address, socklen_t size, const char* p
     unsigned char *commitBuffer = new Byte[commitSize];
     peer.getCommitMessage(commitBuffer, commitSize);
     char control = 'c';
-    send(mSocket, &control, 1, 0);
-    send(mSocket, (char *) commitBuffer, commitSize, 0);
-    send(mSocket, &control, 1, 0);
-    recv(mSocket, (char *) commitBuffer, commitSize, 0);
+    ::send(mSocket, &control, 1, 0);
+    ::send(mSocket, (char *) commitBuffer, commitSize, 0);
+    ::send(mSocket, &control, 1, 0);
+    ::recv(mSocket, (char *) commitBuffer, commitSize, 0);
     if (!peer.verifyPeerCommit(commitBuffer)) {
         std::cout << "Commit error" << std::endl;
         return SOCKET_ERROR;
@@ -152,10 +152,10 @@ int SecureConnection::Connect(sockaddr_t *address, socklen_t size, const char* p
     uint64_t confirmSize = peer.getConfirmMessageSize();
     unsigned char *confirmBuffer = new Byte[confirmSize];
     peer.getConfirmMessage(confirmBuffer, confirmSize);
-    send(mSocket, &control, 1, 0);
-    send(mSocket, (char *) confirmBuffer, confirmSize, 0);
-    send(mSocket, &control, 1, 0);
-    recv(mSocket, (char *) confirmBuffer, confirmSize, 0);
+    ::send(mSocket, &control, 1, 0);
+    ::send(mSocket, (char *) confirmBuffer, confirmSize, 0);
+    ::send(mSocket, &control, 1, 0);
+    ::recv(mSocket, (char *) confirmBuffer, confirmSize, 0);
     if (!peer.verifyPeerConfirm(confirmBuffer)) {
         std::cout << "Confirm error" << std::endl;
         return SOCKET_ERROR;
@@ -265,7 +265,7 @@ int encrypt(unsigned char *plaintext, int plaintext_len, unsigned char *key,
     return ciphertext_len;
 }
 //*
-long SecureConnection::Receive(char* data, size_t size, int flags) {
+long SecureSocket::receive(char* data, size_t size, int flags) {
     if (mKey == nullptr)
         return -1;
     Byte * encryptedData = new Byte[size];
@@ -280,26 +280,18 @@ long SecureConnection::Receive(char* data, size_t size, int flags) {
     delete[] encryptedData;
     return decrypted+1;
 }
-long SecureConnection::Send(const char* data, size_t size, int flags)
+long SecureSocket::send(const char* data, size_t size, int flags)
 {
     Byte* encryptedData = new Byte[size + mKeySize];
 
     int encrypted = encrypt((Byte*)data, size, mKey, (Byte*)"0123456789ABCDEF", encryptedData);
-    int sent = send(mSocket, (char*)encryptedData, encrypted, flags);
+    int sent = ::send(mSocket, (char*)encryptedData, encrypted, flags);
 
     delete[] encryptedData;
     return sent;
 }
-/*/
-long SecureConnection::Receive(char* data, size_t size, int flags) {
-    return recv(mSocket, (char*)data, size, flags);
-}
-long SecureConnection::Send(const char* data, size_t size, int flags)
-{
-    return send(mSocket, (char*)data, size, flags);
-}
-//*/
-int SecureConnection::Close()
+
+int SecureSocket::close()
 {
     delete[] mKey;
     mKey = nullptr;
@@ -311,7 +303,7 @@ int SecureConnection::Close()
         returnCode = closesocket(mSocket);
 #elif __unix__
     if (mSocket != INVALID_SOCKET)
-        returnCode = close(mSocket);
+        returnCode = ::close(mSocket);
 #endif
     mSocket = INVALID_SOCKET;
     status = Status::Error;

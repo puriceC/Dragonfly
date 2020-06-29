@@ -157,7 +157,7 @@
     <ClCompile Include="Main.cpp" />
     <ClCompile Include="ParameterSet.cpp" />
     <ClCompile Include="Peer.cpp" />
-    <ClCompile Include="SecureConnection.cpp" />
+    <ClCompile Include="SecureSocket.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\WinNTL-11_4_3\src\NTL.vcxproj">
@@ -168,7 +168,7 @@
     <ClInclude Include="Element.h" />
     <ClInclude Include="ParameterSet.h" />
     <ClInclude Include="Peer.h" />
-    <ClInclude Include="SecureConnection.h" />
+    <ClInclude Include="SecureSocket.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
