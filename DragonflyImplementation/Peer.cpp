@@ -1,4 +1,5 @@
 #include "Peer.h"
+#include <openssl\sha.h>
 #include "ParameterSet.h"
 
 using namespace NTL;
@@ -25,7 +26,7 @@ inline ZZ lgr(const ZZ_p& a)
 	if (result == 1) return ZZ(1);
 	if (result == -1)return ZZ(-1);
 	return ZZ(0);
-}
+} 
 ZZ_p getQuadraticResidue()
 {
 	static ZZ_p qr(ZZ_p::zero());
@@ -351,7 +352,10 @@ bool Peer::verifyPeerConfirm(const Byte* peerConfirmMessage)
 
 void Peer::Hash(Byte* result, const Byte* buffer, size_t bufferSize)
 {
-	DeriveKey(result, DIGEST_SIZE, buffer, bufferSize);
+	SHA256_CTX ctx;
+	SHA256_Init(&ctx);
+	SHA256_Update(&ctx, buffer, bufferSize);
+	SHA256_Final(result, &ctx);
 }
 void Peer::HuntingAndPecking()
 {

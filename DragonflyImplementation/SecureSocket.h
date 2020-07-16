@@ -4,7 +4,7 @@
 #include <winsock2.h>
 #include <Ws2tcpip.h>
 using socket_t = SOCKET;
-using sockaddr_in = SOCKADDR_IN;
+using sockaddr_in_t = SOCKADDR_IN;
 using sockaddr_t = SOCKADDR;
 using socklen_t = int;
 #elif __unix__
@@ -13,6 +13,7 @@ using socklen_t = int;
 #include <unistd.h>
 using socket_t = int;
 using sockaddr_t = sockaddr;
+using sockaddr_in_t = sockaddr_in;
 static const socket_t INVALID_SOCKET = -1;
 static const int SOCKET_ERROR = -1;
 #endif
